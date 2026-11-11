@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="km">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ប្រព័ន្ធបម្លែងសំឡេងវីដេអូជាភាសាខ្មែរ</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #4f46e5;
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+            --border-color: #334155;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Kantumruy Pro', sans-serif; }
+        body { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); color: var(--text-main); display: flex; justify-content: center; align-items: center; min-height: 100vh; padding: 20px; }
+        .container { background: var(--card-bg); border: 1px solid var(--border-color); padding: 40px; border-radius: 20px; width: 100%; max-width: 650px; text-align: center; box-shadow: 0 20px 25px rgba(0,0,0,0.3); }
+        h2 { font-size: 24px; margin-bottom: 8px; color: #818cf8; }
+        p { color: var(--text-muted); font-size: 14px; margin-bottom: 25px; }
+        .upload-box { border: 2px dashed var(--border-color); padding: 30px; border-radius: 14px; background: rgba(15, 23, 42, 0.5); cursor: pointer; margin-bottom: 20px; }
+        input[type="file"] { display: none; }
+        .voice-select { margin-bottom: 20px; text-align: left; }
+        .voice-select label { display: block; color: var(--text-muted); margin-bottom: 8px; font-size: 14px; }
+        select { width: 100%; padding: 12px; border-radius: 8px; background: #0f172a; color: white; border: 1px solid var(--border-color); font-family: 'Kantumruy Pro'; }
+        .btn { background: var(--primary-color); color: white; padding: 14px 25px; border: none; border-radius: 10px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; }
+        .progress-container { margin-top: 20px; display: none; }
+        .result-section { margin-top: 20px; display: none; }
+        video { width: 100%; border-radius: 10px; margin-bottom: 15px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>បម្លែងសំឡេងវីដេអូជាភាសាខ្មែរ</h2>
+        <p>ជ្រើសរើសប្រភេទសំឡេង និងបញ្ជូនវីដេអូរបស់អ្នកដើម្បីបកប្រែ</p>
+
+        <form id="uploadForm">
+            <label for="videoFile" class="upload-box" id="dropZone">
+                <p id="fileName">ចុចទីនេះ ឬទម្លាក់ឯកសារវីដេអូទីនេះ</p>
+            </label>
+            <input type="file" id="videoFile" accept="video/*" required>
+
+            <div class="voice-select">
+                <label>ជ្រើសរើសប្រភេទសំឡេងនិយាយ៖</label>
+                <select id="voiceType">
+                    <option value="female">សំឡេងមនុស្សស្រី (Female Voice)</option>
+                    <option value="male">សំឡេងមនុស្សប្រុស (Male Voice)</option>
+                </select>
+            </div>
+
+            <button type="submit" class="btn" id="submitBtn" style="display: none;">ចាប់ផ្ដើមបម្លែងសំឡេង</button>
+        </form>
+
+        <div class="progress-container" id="progressContainer">
+            <p id="statusText">កំពុងដំណើរការតាមដាន AI និងកាត់តវីដេអូ...</p>
+        </div>
+
+        <div class="result-section" id="resultSection">
+            <h3>🎉 สำเร็จ! វីដេអូរបស់អ្នករួចរាល់ហើយ</h3>
+            <video id="outputVideo" controls></video>
+            <a id="downloadBtn" class="btn" style="text-decoration: none; display: block;" download>ទាញយកវីដេអូ</a>
+        </div>
+    </div>
+
+    <script>
+        const fileInput = document.getElementById('videoFile');
+        const fileNameDisplay = document.getElementById('fileName');
+        const uploadForm = document.getElementById('uploadForm');
+        const submitBtn = document.getElementById('submitBtn');
+        const progressContainer = document.getElementById('progressContainer');
+        const statusText = document.getElementById('statusText');
+        const resultSection = document.getElementById('resultSection');
+        const outputVideo = document.getElementById('outputVideo');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                fileNameDisplay.textContent = "បានជ្រើសរើស៖ " + fileInput.files[0].name;
+                submitBtn.style.display = 'block';
+            }
+        });
+
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData();
+            formData.append('video', fileInput.files[0]);
+            formData.append('voice', document.getElementById('voiceType').value);
+
+            uploadForm.style.display = 'none';
+            progressContainer.style.display = 'block';
+            statusText.textContent = "กำลังដំណើរការទាញយកសំឡេង និងបង្កើតសំឡេងខ្មែរ...";
+
+            try {
+                const response = await fetch('http://localhost:5000/process-video', {
+                    method: 'POST',
+                    body: formData
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    progressContainer.style.display = 'none';
+                    resultSection.style.display = 'block';
+                    outputVideo.src = 'http://localhost:5000' + result.download_url;
+                    downloadBtn.href = 'http://localhost:5000' + result.download_url;
+                } else {
+                    alert('កំហុស៖ ' + result.error);
+                    location.reload();
+                }
+            } catch (err) {
+                alert('មានបញ្ហាក្នុងការតភ្ជាប់ទៅកាន់ Server');
+                location.reload();
+            }
+        });
+    </script>
+</body>
+</html>
